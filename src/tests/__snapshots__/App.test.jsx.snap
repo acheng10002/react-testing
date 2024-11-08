@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`App component > renders magnificent monkeys 1`] = `
+<div>
+  <h1>
+    My First Test
+  </h1>
+</div>
+`;
+
+exports[`renders 1`] = `
+<DocumentFragment>
+  <header>
+    <h2
+      class="fancy-h2"
+      data-testid="h2tag"
+    >
+      Hello
+    </h2>
+  </header>
+</DocumentFragment>
+`;
+
+exports[`toUpperCase 1`] = `"FOOBAR"`;
