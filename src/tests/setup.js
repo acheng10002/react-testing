@@ -22,6 +22,7 @@ Object.defineProperty(navigator, "clipboard", {
   configurable: true,
 });
 
+global.fetch = vi.fn();
 /* implementation details - things which users of my code will not
 typically use, see, or even know about 
 Why is testing implementation details bad?

@@ -1,8 +1,19 @@
 import React from "react";
-import { describe, it, expect, test, SnapshotSerializer, vi } from "vitest";
+import ReactDOM from "react-dom";
+import {
+  beforeEach,
+  afterEach,
+  describe,
+  it,
+  expect,
+  test,
+  SnapshotSerializer,
+  vi,
+} from "vitest";
 // @testing-library/react gives me access to functions like render
 // cleanup is way to get rid of the "garbage" react testing library creates when it tests
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { act } from "react-dom/test-utils";
 import { getByLabelText, getDefaultNormalizer } from "@testing-library/dom";
 // import renderHTML from "react-render-html";
 import userEvent from "@testing-library/user-event";
@@ -18,9 +29,23 @@ import {
   ClipboardComponent,
   UtilityAPIsComponent,
   Header,
+  CustomButton,
+  CounterButton,
+  Application,
+  CounterButtonOne,
+  Timer,
+  GroupForm,
+  NewsletterForm,
 } from "../App.jsx";
 
-afterEach(cleanup);
+afterEach(() => {
+  vi.restoreAllMocks();
+  cleanup();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 /*
 // describe is a test suite
 describe("something truthy and falsy", () => {
@@ -1340,4 +1365,718 @@ it("inserts text in h2", () => {
   expect(getByTestId("h2tag")).toHaveTextContent("Hello");
   // getByText expects exact same text
   expect(getByText("Hello!")).toHaveClass("fancy-h2");
+});
+
+// describe and it from vitest, define test suits and test cases
+describe("CustomButton", () => {
+  it("should render a button with the text 'Click me'", () => {
+    /* render from react testing library, the component in a virtual DOM so 
+    that I can interact with and query it in the test; allows the test to behave 
+    as if the component is being rendered in a real browser environment */
+    render(<CustomButton onClick={() => {}} />);
+
+    /* getByRole from react testing library, is a query function that allows me
+    to find elements, in this case by their role */
+    const button = screen.getByRole("button", { name: "Click me" });
+    /* expect from vitest, for making assertions in test, allows me to specify
+    expected outcomes and check whether the code meets these expectations */
+    expect(button).toBeInTheDocument();
+  });
+
+  /* for second and third tests, onClick handler gets mocked using vi.fn() */
+  it("should call the onClick function when clicked", async () => {
+    /* vi.fn() creates a mock function that can track how many times
+    it's called, what arguments it's called with, and whether it has
+    been called at all
+    used to test callbacks or event handlers */
+    const onClick = vi.fn();
+    /* userEvent library for more realistic event simulations
+    userEvent.setup() initializes the event */
+    const user = userEvent.setup();
+    render(<CustomButton onClick={onClick} />);
+
+    const button = screen.getByRole("button", { name: "Click me" });
+
+    // user.click simulates a click event
+    await user.click(button);
+
+    // assert onClick is called when the button is clicked
+    expect(onClick).toHaveBeenCalled();
+  });
+
+  it("should not call the onClick function when it isn't clicked", async () => {
+    const onClick = vi.fn();
+    render(<CustomButton onClick={onClick} />);
+
+    // assert onClick is not called when the button is not clicked
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});
+
+/* mocks can be set up in a beforeEach block
+all setups should be done in the same test block, unless my test file is 
+particularly long and the test preparation takes dozen of lines
+userEvent.setup() should be invoked before rendering the component
+(renders and userEvent functions should not be called outside of the tests) 
+
+if I am repeating the same code in multiple tests, I can write a setup function
+to shorten each test 
+
+// setup function
+function setup(jsx) {
+  return {
+    user: userEvent.setup(),
+    // Import `render` from the framework library of your choice.
+    // See https://testing-library.com/docs/dom-testing-library/install#wrappers
+    ...render(jsx),
+  }
+}
+
+test('render with a setup function', async () => {
+  const {user} = setup(<MyComponent />)
+  // ...
+})
+*/
+
+/* two child components of SubmissionsList 
+one from a package called react-flip-move 
+jest.mock("react-flip-move", () => ({ children }) => <div>{children}</div>);
+
+jest.mock("../submission", () => ({ submission, isDashboardView }) => (
+  <>
+    {/* data-test-id is used to identify mocked child components but
+    React Testing Library uses data-testid by default 
+    only render the bare minimum to realize the validity of the component
+    I'm testing }
+    <div data-test-id="submission">{submission.id}</div>
+    <div data-test-id="dashboard">{isDashboardView.toString()}</div>
+  </>
+));
+
+// setup props
+const submissions = [
+  { id: "foo", likes: 3 },
+  { id: "bar", likes: 2 },
+  { id: "baz", likes: 1 },
+];
+const userSubmission = { id: "foobar" };
+const handleDelete = jest.fn();
+const onFlag = jest.fn();
+const handleUpdate = jest.fn();
+const handleLikeToggle = jest.fn();
+
+describe("submissions list", () => {
+  // three test suites for my three points of interest that I want to test
+  describe("submissions", () => {
+    it("renders the submissions array in order of likes", () => {
+      render(
+        // ProjectSubmissionContext acts as a route to pass in the allSubmissionsPath prop
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "#" }}>
+          <SubmissionsList
+            submissions={submissions}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+
+      // some assertions if the user has a submission
+      expect(screen.queryAllByTestId("submission").length).toBe(3);
+      expect(screen.queryAllByTestId("submission")[0].textContent).toBe("foo");
+      expect(screen.queryAllByTestId("submission")[1].textContent).toBe("bar");
+      expect(screen.queryAllByTestId("submission")[2].textContent).toBe("baz");
+    });
+
+    it("does not render any submissions when array is empty and user submission not provided, and instead renders a no submissions message", () => {
+      render(
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "#" }}>
+          <SubmissionsList
+            submissions={[]}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+      // some assertions if the user does not have submission
+      expect(screen.queryAllByTestId("submission").length).toBe(0);
+      expect(
+        screen.getByText("No Submissions yet, be the first!")
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("user submission", () => {
+    it("renders a user submission when provided", () => {
+      render(
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "#" }}>
+          <SubmissionsList
+            submissions={submissions}
+            userSubmission={userSubmission}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+
+      expect(screen.queryAllByTestId("submission").length).toBe(4);
+      expect(screen.getByText("foobar")).toBeInTheDocument();
+    });
+
+    it("does not render a user submission when not provided", () => {
+      render(
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "#" }}>
+          <SubmissionsList
+            submissions={submissions}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+
+      expect(screen.queryAllByTestId("submission").length).toBe(3);
+      expect(screen.queryByText("foobar")).not.toBeInTheDocument();
+    });
+
+    it("does not render 'no submissions' message when array is empty but user submission is provided", () => {
+      render(
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "#" }}>
+          <SubmissionsList
+            submissions={[]}
+            userSubmission={userSubmission}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+
+      expect(screen.getByText("foobar")).toBeInTheDocument();
+      expect(
+        screen.queryByText("No Submissions yet, be the first!")
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("context", () => {
+    it("renders view more section if allSubmissionsPath is provided in context", () => {
+      render(
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "#" }}>
+          <SubmissionsList
+            submissions={submissions}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+            onFlag={onFlag}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+
+      expect(screen.getByTestId("view-all-projects-link")).toBeInTheDocument();
+    });
+
+    it("does not render view more section if allSubmissionsPath is not provided in context", () => {
+      render(
+        <ProjectSubmissionContext.Provider value={{ allSubmissionsPath: "" }}>
+          <SubmissionsList
+            submissions={submissions}
+            handleDelete={handleDelete}
+            handleUpdate={handleUpdate}
+            handleLikeToggle={handleLikeToggle}
+            onFlag={onFlag}
+          />
+        </ProjectSubmissionContext.Provider>
+      );
+
+      expect(
+        screen.queryByTestId("view-all-projects-link")
+      ).not.toBeInTheDocument();
+    });
+  });
+}); */
+
+describe("CounterButton", () => {
+  it("should render with an initial count", () => {
+    // Arrange: set up the test by rendering the component and defining any props or mocks
+    render(<CounterButton initialCount={5} />);
+
+    // Act: perform the action that triggers the behavior being tested
+    const countDisplay = screen.getByTestId("count");
+
+    // Assert: verify that the expected outcome has occurred
+    expect(countDisplay).toHaveTextContent("Count: 5");
+  });
+
+  it("should increment count when button is clicked", async () => {
+    // Arrange: set up the test by rendering the component and defining any props or mocks
+    render(<CounterButton initialCount={0} />);
+    const button = screen.getByRole("button", { name: "Increment" });
+    const countDisplay = screen.getByTestId("count");
+    const user = userEvent.setup();
+
+    // Act: perform the action that triggers the behavior being tested e.g. clicking a button
+    await user.click(button);
+
+    // Assert: verify that the expected outcome has occurred
+    expect(countDisplay).toHaveTextContent("Count: 1");
+  });
+
+  it("should increment count multiple times when button is clicked", async () => {
+    /* Arrange: set up the test by rendering the component and defining any props or mocks 
+    arrange all necessary preconditions and inputs 
+    Arrange is variable declaration and initialization */
+    render(<CounterButton initialCount={0} />);
+    const button = screen.getByRole("button", { name: "Increment" });
+    const countDisplay = screen.getByTestId("count");
+    const user = userEvent.setup();
+
+    /* Act: perform the action that triggers the behavior being tested e.g. clicking a button 
+    act on the object or method under test 
+    Act is invoking the code under test */
+    await user.click(button);
+    await user.click(button);
+    await user.click(button);
+
+    /* Assert: verify that the expected outcome has occurred 
+    assert that the expected results have occurred 
+    Assert is using methods to verify that expectations were met */
+    expect(countDisplay).toHaveTextContent("Count: 3");
+  });
+});
+
+/* React doesn't just 'synchronously' render the whole UI every time,
+it divides its work into chunks and queues it up in a scheduler */
+describe("Application", () => {
+  it("should render 1", () => {
+    /* Arrange & Act 
+    first render establishes the container and then it renders the
+    component again inside act(...) using the same container 
+    the second render is redundant unless I am triggering
+    updates in child components */
+    const { container } = render(<Application />);
+
+    act(() => {
+      render(<Application />, { container });
+    });
+
+    /* Assert 
+    queries the DOM to verify that an element containing "1" is present */
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+});
+
+describe("Application", () => {
+  it("should render 1", () => {
+    // Arrange
+    let container;
+
+    /* Act 
+    act wraps the initial render to ensure any component updates are
+    processed before assertions
+    typical when rendering or updating triggers async state changes
+    or side effects
+    act(...) guarantees that any state updates will be executed and
+    that any enqueued effects will be executed
+    React will warn me when I try to set state outside the scope of 
+    an act(...) call */
+    act(() => {
+      const rendered = render(<Application />);
+      container = rendered.container;
+    });
+
+    /* Assert 
+    checks the entire rendered HTML output */
+    expect(container.innerHTML).toBe("1");
+  });
+});
+
+/* act puts boundareis around the bits of code that actually interact
+with my React app, user interactions, apis, custom event handlers, and
+subscriptions firing 
+React will make sure my UI is updated as expected, so I can make 
+assertions on it */
+
+describe("CounterButtonOne", () => {
+  test("should increment a counter", () => {
+    // el will be the container for rendering CounterButtonOne
+    const el = document.createElement("div");
+    /* this is necessary for events like click to work properly in 
+    certain test environments */
+    document.body.appendChild(el);
+
+    // render/mount the component inside el, into the DOM
+    ReactDOM.render(<CounterButtonOne />, el);
+
+    /* assume the button is the first child in the component 
+    in practice, better to use a more explicit selector 
+    button is the DOM element representing the button 
+    inside the component */
+    const button = el.childNodes[0];
+
+    /* act groups and flushes state updates together, exposing potential bugs
+    caused by improper state management */
+    act(() => {
+      // simulate 3 click events
+      for (let i = 0; i < 3; i++) {
+        /* new MouseEvent object of type click is created with the additional
+        property of bubbling enabled
+          the event will propagate to parent elements, triggering event listeners
+          on the parents as well
+        MouseEvent object represents events triggered by mouse interactions
+        dispatchEvent method sends this event to the button element
+        button element processes the event, triggering any attached event listeners */
+        button.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      }
+    });
+    // check if the button's innerHTML is '3' after 3 clicks
+    expect(button.innerHTML).toBe("3");
+
+    /* clean up 
+    unmounts the component from el, removes React bindings and listeners */
+    ReactDOM.unmountComponentAtNode(el);
+    /* removes el from thr document body, cleaning up 
+    the DOM, resets test env for future tests */
+    document.body.removeChild(el);
+  });
+});
+
+it("should tick to a new value", () => {
+  /* replaces the real timer functions (setTimeout, setInterval, etc.) 
+  with locked versions, allows control over the passage of time in tests 
+  makes vi.runAllTimers() and related methods available to manually 
+  advance or trigger timer callbacks during the test */
+  vi.useFakeTimers();
+  // el will be the container for rendering Timer
+  const el = document.createElement("div");
+  /* wrapping it in act() ensures React processes all effects and state
+  updates synchronously, ensuring the component behaves as expected 
+  ensures that all React side effects are flushed during the test 
+  flushing - means ensuring all operations React has scheduled to occur
+  after render- such as those defined in useEffect, useLayoutEffect, or 
+  lifecycle methods-are executed immediately */
+  act(() => {
+    // render/mount the component inside el, into the DOM
+    ReactDOM.render(<Timer />, el);
+  });
+  // asserts that Timer initially renders with a value of 0
+  expect(el.textContent).toBe("0");
+  /* wrapping in act() ensures React processes the updates correctly
+  during the test */
+  act(() => {
+    /* simulates the pasage of all timer-based time by executing all 
+    pending timer callbacks immediately */
+    vi.runAllTimers();
+  });
+  // asserts that after the timers have been processed, the Timer renders 1
+  expect(el.textContent).toBe("1");
+});
+/* 
+1. set up fake timers
+  vi.useFakeTimers() ensures I can control timers during the test
+2. render Timer component
+  Timer is rendered into a container, el, initializing with a value of 0
+3. simulate time passage
+  vi.runAllTimers() triggers the timer-based state updates in the Timer component
+4. assertions
+  before any timers run, the rendered value is 0
+  after the timers execute, the rendered value updates to 1
+
+React's act() utility wraps operations that trigger side effects
+React immediately runs all pending effects (e.g., useEffect) and ensures
+the DOM reflects the latest state 
+
+it("should tick to a new value", async () => {
+  /* helper function for sleep 
+  sleep function is amintained for asynchronous delays 
+  function sleep(period) {
+    return new Promise((resolve) => setTimeout(resolve, period));
+  }
+
+  // creates a container for rendering the Timer component
+  const el = document.createElement("div");
+  const root = createRoot(el);
+
+  // render the component
+  act(() => {
+    root.render(<Timer />);
+  });
+
+  // Debugging
+  console.log("After render:", el.textContent);
+
+  // initial value assertion
+  expect(el.textContent).toBe("0");
+
+  /* simulate waiting for the timer in the component 
+  await act() ensures React processes all state updates and side effects
+  triggered during the delay 
+  defines an asynchronous boundary for act() - wraps async operations, 
+    promises and timeouts, in an async function passed to act() 
+  ensures React processes and flushes all pending updates triggered by
+  async operations, so the component's state and DOM reflect the most-
+  up-to-date state after the operations complete 
+  await act(async () => {
+    // wait slightly longer than the component's timeout
+    await sleep(1100);
+  });
+  // Debugging
+  console.log("After timeout:", el.textContent);
+
+  // check if the value updated
+  expect(el.textContent).toBe("1");
+}); 
+
+it("should display fetched data", async () => {
+  let resolveFetch;
+
+  // mock fetch function to provide controlled promise resolution
+  global.fetch = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+  );
+
+  const el = document.createElement("div");
+  const root = createRoot(el);
+
+  /* render the DataFetcher component 
+  wrap both rendering and state-updating promise resolutions
+  in act() to ensure React flushes updates correctly 
+  act(() => {
+    root.render(<DataFetcher />);
+  });
+
+  // initially, the content should be empty
+  expect(el.textContent).toBe("");
+
+  /* resolve the mock fetch 
+  using async version to make sure microtasks are flushed
+  before releasing scope  
+  await act(async () => {
+    // mocked data to resolve the promise
+    resolveFetch(42);
+  });
+
+  expect(el.textContent).toBe("42");
+});
+
+it("should display fetched data", async () => {
+  // variable to hold a reference to the resolve function of a function
+  let resolveFetch;
+
+  /* mocks the fetch function globally, instead of making an actual HTTP 
+  request, creates a new promise and assigns reolve function to resolveFetch 
+  global.fetch = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      })
+  );
+
+  // creates a div to serve as the DOM root for rendering
+  const el = document.createElement("div");
+  // initialize rendering of React components into the div
+  const root = createRoot(el);
+
+  /* act() renders the DataFetcherOne component
+  act ensures all effects and updates are processed 
+  synchronously for testing 
+  act(() => {
+    root.render(<DataFetcherOne />);
+  });
+
+  /* asserts that the textContent of the rendered div is 
+  initially an empty string since data is null at first 
+  test verifies that data is initially empty 
+  expect(el.textContent).toBe("");
+
+  /* resolves the mocked fethc promise by calling resolveFetch(42)
+  within an await block
+  simulates an asynchronous response with the value 42 
+  mocked fetch promise is resolved with 42, and
+  setData updates data 
+  await act(async () => {
+    resolveFetch(42);
+  });
+
+  /* asserts that the textContent of div is now 42
+  indicating the component re-rendered with the fetched data 
+  test verifies that the update content matches 42
+  expect(el.textContent).toBe("42");
+});
+
+/* mock the child component to be a simplified version and
+test the parent component 
+vi.mock function replaces the actual implementation of UserManagement.jsx
+ith the mocked version defined in the callback function */
+vi.mock("./UserManagement.jsx", () => ({
+  /* specifies that the mocked module is an ES module, 
+  making it compatible with imports using import syntax */
+  __esModule: true,
+  /* specifies the default export of the mocked module
+  it's functional component that accepts props, destructured into
+  users, onAdd, onEdit, and onDelete */
+  default: ({ users, onAdd, onEdit, onDelete }) => (
+    <div>
+      {/* data-testid attribute makes this button identifiable in tests 
+      simulates a button that calls onAdd function when clicked */}
+      <button data-testid="addUser" onClick={onAdd}>
+        Add User
+      </button>
+      {/* iterates over the users array,, and for each user, a child
+      div is rendered */}
+      {users.map((user, index) => (
+        /* array index is used as a unique key for each div 
+        data-testid attribute makes each div testable */
+        <div key={index} data-testid={`user-${index}`}>
+          {/* inside the div, two span elements display the user's 
+          name and address */}
+          <span>{user.name}</span> - <span>{user.address}</span>
+          {/* button labeled Edit is rendered for each user
+          data-testid makes the button testable
+          onClick handler calls onEdit function, pass the current user's
+            index as an argument */}
+          <button
+            data-testid={`editUser-${index}`}
+            onClick={() => onEdit(index)}
+          >
+            Edit
+          </button>
+          {/* button labeled Delete is rendered for each user
+          data-testid makes the button testable
+          onClick handler calls onDelete function, pass the current user's
+            index as an argument */}
+          <button
+            data-testid={`deleteUser-${index}`}
+            onClick={() => onDelete(index)}
+          >
+            Delete
+          </button>
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
+describe("GroupForm Component", () => {
+  // test logic in callback function
+  it("correctly handles adding a user", () => {
+    /* renders GroupForm in the virtual DOM for testing, initializes it
+    and allows me to interact with it */
+    render(<GroupForm />);
+
+    /* finds the button with data-testid="addUser" in the rendered component 
+    simulates a user clicking on the Add User button */
+    fireEvent.click(screen.getByTestId("addUser"));
+
+    // verify UserForm is rendered
+    expect(screen.getByTestId("user-form-rendered")).toBeInTheDocument();
+
+    /* fill the form and submit 
+    locate the input field for the user's name and address
+    simulates the user typing in the input by trigger a change event
+    target object specifies the new value for the input */
+    fireEvent.change(screen.getByTestId("name-input"), {
+      target: { value: "New User" },
+    });
+    fireEvent.change(screen.getByTestId("address-input"), {
+      target: { value: "New Address" },
+    });
+
+    // simulates the user clicking the submit button, triggering form submit logic
+    fireEvent.click(screen.getByTestId("submit-button"));
+
+    /* verify the user was added 
+    locates the element that displays the current list of users in JSON,
+    retrieves the string content of the element
+    converts the string content into a JS array of user objects */
+    const users = JSON.parse(screen.getByTestId("users").textContent);
+    // compares the actual users array to the expected value
+    expect(users).toEqual([{ name: "New User", address: "New Address" }]);
+  });
+
+  it("correctly handles editing a user", () => {
+    const initialUsers = [{ name: "Old User", address: "Old Address" }];
+    // renders GroupForm and passes in initialUsers prop
+    render(<GroupForm initialUsers={initialUsers} />);
+
+    // simulates clicking the Edit button for the first user
+    fireEvent.click(screen.getByTestId("editUser-0"));
+
+    /* verify UserForm is rendered with correct initial values 
+    toHaveValue matcher is used for form0related tests to confirm that a
+    field contains the expected value */
+    expect(screen.getByTestId("user-form-rendered")).toBeInTheDocument();
+    expect(screen.getByTestId("name-input")).toHaveValue("Old User");
+    expect(screen.getByTestId("address-input")).toHaveValue("Old Address");
+
+    // update the form and submit
+    fireEvent.change(screen.getByTestId("name-input"), {
+      target: { value: "Updated User" },
+    });
+    fireEvent.change(screen.getByTestId("address-input"), {
+      target: { value: "Updated Address" },
+    });
+    fireEvent.click(screen.getByTestId("submit-button"));
+
+    // verify the user was updated
+    const users = JSON.parse(screen.getByTestId("users").textContent);
+    expect(users).toEqual([
+      { name: "Updated User", address: "Updated Address" },
+    ]);
+  });
+
+  it("correctly handles deleting a user", () => {
+    const initialUsers = [
+      { name: "User1", address: "Address1" },
+      { name: "User2", address: "Address2" },
+    ];
+    render(<GroupForm initialUsers={initialUsers} />);
+
+    // simulates clicking the Delete button for the second user
+    fireEvent.click(screen.getByTestId("deleteUser-1"));
+
+    // verify the user was removed
+    const users = JSON.parse(screen.getByTestId("users").textContent);
+    expect(users).toEqual([{ name: "User1", address: "Address1" }]);
+  });
+});
+
+test("User can sign up for the newsletter", async () => {
+  // given - render phase, prepare a component for assertions
+  // Mock the updateNewsletter function to resolve immediately
+  // create a mock function to simulate API call
+  const updateNewsletterMock = vi.fn().mockResolvedValue("Newsletter updated");
+  // Render the component
+  // render NewsletterForm and pass it to updateNewsletter mock
+  render(<NewsletterForm updateNewsletter={updateNewsletterMock} />);
+  // Define the email to test
+  const email = "testuser@example.com";
+
+  /* when - actions phase, prepare a component for assertions 
+    use RTL-provided functions to find some elements */
+  // Get the DOM elements
+  const emailInput = screen.getByTestId("email");
+  const submitButton = screen.getByTestId("submit");
+
+  /* await required for userEvent in modern libraries 
+    enter email 
+    use type and click methods on the user object */
+  // Simulate user typing and submitting
+  await userEvent.type(emailInput, email);
+  // click the submit button
+  await userEvent.click(submitButton);
+
+  /* then - assert phase 
+    expect the passed-in function to be called with the entered email */
+  // Check that the mock function was called
+  expect(updateNewsletterMock).toHaveBeenCalledWith(email);
+
+  // Confirm that the header text changes
+  const header = screen.getByTestId("header");
+  expect(header).toHaveTextContent("You're signed up!");
 });

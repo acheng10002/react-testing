@@ -9,5 +9,6 @@ export default defineConfig({
     // better to explicitly import the globals I'd need
     globals: true,
     setupFiles: "./src/tests/setup.js",
+    isolate: true,
   },
 });

@@ -12,6 +12,11 @@ import {
   KeyboardComponent,
   ClipboardComponent,
   UtilityAPIsComponent,
+  Application,
+  CounterButtonOne,
+  Timer,
+  GroupForm,
+  NewsletterForm,
 } from "./App.jsx";
 
 const items = [
@@ -41,6 +46,11 @@ createRoot(document.getElementById("root")).render(
     <KeyboardComponent />
     <ClipboardComponent />
     <UtilityAPIsComponent />
+    <Application />
+    <CounterButtonOne />
+    <Timer />
+    <GroupForm />
+    <NewsletterForm />
   </StrictMode>
 );
 
@@ -128,4 +138,15 @@ React Fetch
 first use npm to add react-testing-library 
 also add jest-dom package, to get expect assertions 
 ex. expect the component to have this text content
-    expect the h2 tag to have a certain class or attribute */
+    expect the h2 tag to have a certain class or attribute 
+    
+Carry out mocks in the context of React testing
+every kind of user interaction involves callbacks,
+  sometimes they're passed in as props to alter state of the parent component
+How can I mock a callback handler?
+How can I mock a child component?
+
+
+act(...) api
+wrap my test interactions with act(() => ...)
+testing asynchronous code */

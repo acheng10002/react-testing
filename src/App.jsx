@@ -1,6 +1,18 @@
-import { useState, Component, Fragment } from "react";
+import { useState, useEffect, Component, Fragment, useContext } from "react";
+import UserForm from "./UserForm.jsx";
+import UserManagement from "./UserManagement.jsx";
+// import { render } from "react-dom";
+// import { act } from "react-dom/test-utils";
 // import reactLogo from "./assets/react.svg";
 // import viteLogo from "/vite.svg";
+/* bunch of stuff gets imported
+import {
+  object, func, arrayOf, bool,
+} from 'prop-types';
+import FlipMove from 'react-flip-move';
+
+import Submission from './submission';
+import ProjectSubmissionContext from '../ProjectSubmissionContext'; */
 import "./App.css";
 
 /* function App({ title }) {
@@ -523,6 +535,305 @@ function Header({ text }) {
   );
 }
 
+// callback being passes in as props to alter state of the component
+const CustomButton = ({ onClick }) => {
+  return <button onClick={onClick}>Click me</button>;
+};
+
+const noop = () => {};
+
+/*
+const SubmissionsList = ({
+  submissions,
+  handleDelete,
+  onFlag,
+  handleUpdate,
+  isDashboardView,
+  handleLikeToggle,
+  userSubmission,
+}) => {
+  const { allSubmissionsPath } = useContext(ProjectSubmissionContext);
+  const hasSubmissions = submissions.length > 0 || Boolean(userSubmission);
+
+  return (
+    <div data-test-id="submissions-list">
+      {/* if there's a userSubmission, it renders the Submission component }
+      {userSubmission ? (
+        <Submission
+          key={userSubmission.id}
+          submission={userSubmission}
+          handleUpdate={handleUpdate}
+          onFlag={onFlag}
+          handleDelete={handleDelete}
+          isDashboardView={isDashboardView}
+          handleLikeToggle={handleLikeToggle}
+        />
+      ) : (
+        ""
+      )}
+      {/* if has Submission is true }
+      {hasSubmissions ? (
+        <FlipMove>
+          {submissions
+            // sort the submissions and render them with Submission
+            .sort((a, b) => b.likes - a.likes)
+            .map((submission) => (
+              <Submission
+                key={submission.id}
+                submission={submission}
+                handleUpdate={handleUpdate}
+                onFlag={onFlag}
+                handleDelete={handleDelete}
+                isDashboardView={isDashboardView}
+                handleLikeToggle={handleLikeToggle}
+              />
+            ))}
+        </FlipMove>
+      ) : (
+        // otherwise, a heading says No Submissions yet
+        <h2 className="text-center text-xl text-gray-600 dark:text-gray-300 font-medium pr-0 pb-10 mb-0">
+          No Submissions yet, be the first!
+        </h2>
+      )}
+      {/* if allSubmissionsPath is true, renders a <p> tag }
+      {allSubmissionsPath && hasSubmissions && (
+        <p className="text-center py-6 px-0">
+          <span>Showing {submissions.length} most liked submissions - </span>
+          <a
+            className="underline hover:no-underline text-gray-600 hover:text-gray-800 dark:text-gray-400
+               dark:hover:text-gray-300"
+            data-test-id="view-all-projects-link"
+            href={allSubmissionsPath}
+          >
+            View full list of solutions
+          </a>
+        </p>
+      )}
+    </div>
+  );
+};
+
+SubmissionsList.defaultProps = {
+  userSubmission: null,
+  onFlag: noop,
+  isDashboardView: false,
+};
+
+SubmissionsList.propTypes = {
+  submissions: arrayOf(object).isRequired,
+  userSubmission: object,
+  handleDelete: func.isRequired,
+  onFlag: func,
+  handleUpdate: func.isRequired,
+  handleLikeToggle: func.isRequired,
+  isDashboardView: bool,
+};
+*/
+
+/* component that displays a count and increments it when 
+the button is clicked */
+function CounterButton({ initialCount = 0 }) {
+  const [count, setCount] = useState(initialCount);
+
+  const handleClick = () => setCount(count + 1);
+
+  return (
+    <div>
+      <p data-testid="count">Count: {count}</p>
+      <button onClick={handleClick}>Increment</button>
+    </div>
+  );
+}
+
+function Application() {
+  // useState initialized with 0
+  // 1. the "first" render where React outputs 0
+  let [ctr, setCtr] = useState(0);
+  // useEffect runs only once, setting the state to 1
+  // 2. React runs the effect and sets state to 1
+  useEffect(() => {
+    // 3. React rerenders and outputs 1
+    setCtr(1);
+  }, []);
+  return ctr;
+}
+
+// button that increments a counter
+function CounterButtonOne() {
+  let [counter, setCounter] = useState(0);
+  // onClick function reference as oppoased to immediate function call
+  return (
+    /* using the updater form is best practice when the next state 
+    depends on the current state
+    it ensures correctness, even in batched updates
+      and resilience to timing issues
+    the updater form of setCounter takes a function as an argument
+      that function receives the most-up-to-date state value, counter,
+      at the time the update is applied 
+    React ensures the counter argument always reflects the latest
+      state value, even if multiple updates are batched together
+    React will sequentially apply each update using the updated state
+    */
+    <button onClick={() => setCounter((counter) => counter + 1)}>
+      {counter}
+    </button>
+  );
+}
+
+function Timer() {
+  const [ctr, setCtr] = useState(0);
+  useEffect(() => {
+    setTimeout(() => setCtr(1), 1000);
+  }, []);
+  /* ctr needs to be wrapped in a container so that React renders ctr
+  as the innerHTML of the element */
+  return <div>{ctr}</div>;
+}
+
+/*
+function DataFetcher() {
+  let [data, setData] = useState(null);
+  useEffect(() => {
+    fetch().then((result) => setData(result));
+  }, []);
+  return <div>{data !== null ? data : ""}</div>;
+}
+
+function DataFetcherOne() {
+  // initializes with data = null
+  let [data, setData] = useState(null);
+  // somethingAsync calls the mocked fetch
+  async function somethingAsync() {
+    /* this time we use the await syntax 
+    sends an HTTP request using fetch
+    when the promise resolves, it updates the state data using 
+    setData(result) 
+    let response = await fetch().then((result) => setData(result));
+  }
+   somethingAsync() runs once when the component mounts 
+  useEffect triggers somethingAsync 
+  useEffect(() => {
+    somethingAsync();
+  }, []);
+  /* returns the current value of data
+  when the component re-renders, data will reflect the latest state 
+  return data;
+}
+*/
+
+/* components in React application have a tree-like structure
+components higher up in the tree become more difficult to test 
+because parent components may be comprised of multiple complex
+child components 
+
+I may actually want to interact with the child components, in 
+order to test the full integration of the logic of the parent
+component with all of the child components 
+
+if I want to unit test just the logic contained in the parent
+component, I'll want to abstract away the functionality of the
+child components */
+
+/* I just want to test the parent component, so I will mock the child component
+to be a simplified version that will make my tests more concise */
+const GroupForm = ({ initialUsers = [] }) => {
+  const [users, setUsers] = useState(initialUsers);
+  const [editingIndex, setEditingIndex] = useState(null);
+
+  console.log("Current editingIndex:", editingIndex);
+
+  /* and appends newUser object to the end of the copied array
+  updates the state with the new array containing the additional user */
+  const handleAddUser = () => {
+    setEditingIndex(users.length);
+    console.log("Adding user, editingIndex set to:", users.length);
+  };
+
+  const handleEditUser = (index) => {
+    setEditingIndex(index);
+    console.log("Editing user at index:", index);
+  };
+
+  const handleDeleteUser = (index) =>
+    // removes 1 element at the specified index from the updatedUsers array
+    // updates the state with the new array after the specified user is removed
+    setUsers(users.filter((_, i) => i !== index));
+
+  const handleFormSubmit = (user) => {
+    console.log("Submitting user form for editingIndex:", editingIndex);
+    if (editingIndex !== null && editingIndex < users.length) {
+      const updatedUsers = [...users];
+      updatedUsers[editingIndex] = user;
+      setUsers(updatedUsers);
+    } else {
+      setUsers([...users, user]);
+    }
+    setEditingIndex(null);
+  };
+
+  return (
+    <div>
+      {editingIndex !== null ? (
+        <>
+          <div data-testid="user-form-rendered">UserForm is rendered</div>
+          <UserForm
+            user={users[editingIndex] || {}}
+            onSubmit={handleFormSubmit}
+          />
+        </>
+      ) : (
+        /* renders UserManagement component, which handles adding, deleting, and
+        editing users 
+        users prop passes the users array stored in state 
+        onAdd passes addUser function to handle adding a new user
+        OnDelete passes deleteUser function to handle deleting a user
+        onEdit passes editUser to handle editing an existing user */
+        <>
+          <div data-testid="user-management-rendered">
+            UserManagement is rendered
+          </div>
+          <UserManagement
+            users={users}
+            onAdd={handleAddUser}
+            onEdit={handleEditUser}
+            onDelete={handleDeleteUser}
+          />
+        </>
+      )}
+      <div data-testid="users">{JSON.stringify(users)}</div>
+    </div>
+  );
+};
+
+function NewsletterForm({ updateNewsletter }) {
+  const [signedUp, setSignedUp] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    updateNewsletter(email)
+      .then(() => setSignedUp(true))
+      .catch((error) => console.error("Error updating newsletter:", error));
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <span data-testid="header">
+        {signedUp ? "You're signed up!" : "Sign up for our newsletter!"}
+      </span>
+      <label>Email address</label>
+      <input
+        data-testid="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <button type="submit" data-testid="submit" disabled={!email}>
+        Sign up
+      </button>
+    </form>
+  );
+}
+
 export {
   App,
   Login,
@@ -535,4 +846,20 @@ export {
   ClipboardComponent,
   UtilityAPIsComponent,
   Header,
+  CustomButton,
+  CounterButton,
+  Application,
+  CounterButtonOne,
+  Timer,
+  GroupForm,
+  NewsletterForm,
 };
+
+/* code that causes React state updates should be wrapped into act() 
+for UI tests, taskins like rendering, user events, or data fetching are
+considered units of interaction with a UI 
+for updates related to a single unit of interaction,
+act() is a boundary that surrounds a single unit of interaction e.g. data fetch
+act() makes sure all updates related to the unit have been processed and applied to the DOM
+before I make any assertions
+React makes sure I am testing an updated UI */
